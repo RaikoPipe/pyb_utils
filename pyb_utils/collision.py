@@ -77,7 +77,7 @@ class CollisionDetector:
             self.col_id, bodies, named_collision_pairs
         )
 
-    def compute_distances(self, q, max_distance=1.0):
+    def compute_distances(self, q, joint_indices, max_distance=1.0):
         """Compute closest distances for a given configuration.
 
         Parameters:
@@ -91,9 +91,7 @@ class CollisionDetector:
         """
 
         # put the robot in the given configuration
-        for i in range(
-            pyb.getNumJoints(self.robot_id, physicsClientId=self.col_id)
-        ):
+        for i in joint_indices:
             pyb.resetJointState(
                 self.robot_id, i, q[i], physicsClientId=self.col_id
             )
