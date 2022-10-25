@@ -9,7 +9,7 @@ authors = ["Adam Heins <mail@adamheins.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.11"
+python = ">=3.7"
 numpy = "^1.21.5"
 pybullet = "^3.2.1"
 liegroups = {git = "https://github.com/utiasSTARS/liegroups"}
