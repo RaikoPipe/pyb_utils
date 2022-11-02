@@ -117,7 +117,51 @@ class CollisionDetector:
 
         return np.array(distances)
 
-    def in_collision(self, q, margin=0):
+    def compute_distances_per_link(self, q, joint_indices, max_distance=1.0):
+        """Compute closest distances configuration sorted by link of robotic arm.
+
+        Parameters:
+          q: Iterable representing the desired configuration. This is applied
+             directly to PyBullet body with index bodies["robot"].
+          max_distance: Bodies farther apart than this distance are not queried
+             by PyBullet, the return value for the distance between such bodies
+             will be max_distance.
+
+        Returns: A NumPy array of distances, one per pair of collision objects.
+        """
+
+        # put the robot in the given configuration
+        for i in joint_indices:
+            pyb.resetJointState(
+                self.robot_id, i, q[i], physicsClientId=self.col_id
+            )
+
+        # compute shortest distances between all object pairs
+        distances = {}
+        for a, b in self.indexed_collision_pairs:
+            closest_points = pyb.getClosestPoints(
+                a.body_uid,
+                b.body_uid,
+                distance=max_distance,
+                linkIndexA=a.link_uid,
+                linkIndexB=b.link_uid,
+                physicsClientId=self.col_id,
+            )
+
+            # if link doesn't have a dict entry, add
+            if distances.get[a.link_uid] is None:
+                distances[a.link_uid] = []
+
+            # if bodies are above max_distance apart, nothing is returned, so
+            # we just saturate at max_distance. Otherwise, take the minimum
+            if len(closest_points) == 0:
+                distances[a.link_uid].append(max_distance)
+            else:
+                distances[a.link_uid].append(np.min([pt[8] for pt in closest_points]))
+
+        return np.array(distances)
+
+    def in_collision(self, q, joint_indices, margin=0):
         """Returns True if configuration q is in collision, False otherwise.
 
         Parameters:
@@ -125,5 +169,5 @@ class CollisionDetector:
           margin: Distance at which objects are considered in collision.
              Default is 0.0.
         """
-        ds = self.compute_distances(q, max_distance=margin)
+        ds = self.compute_distances(q, max_distance=margin, joint_indices=joint_indices)
         return (ds < margin).any()
