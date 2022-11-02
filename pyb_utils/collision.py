@@ -149,7 +149,7 @@ class CollisionDetector:
             )
 
             # if link doesn't have a dict entry, add
-            if distances.get[a.link_uid] is None:
+            if distances.get(a.link_uid) is None:
                 distances[a.link_uid] = []
 
             # if bodies are above max_distance apart, nothing is returned, so
