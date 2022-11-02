@@ -159,7 +159,7 @@ class CollisionDetector:
             else:
                 distances[a.link_uid].append(np.min([pt[8] for pt in closest_points]))
 
-        return np.array(distances)
+        return distances
 
     def in_collision(self, q, joint_indices, margin=0):
         """Returns True if configuration q is in collision, False otherwise.
