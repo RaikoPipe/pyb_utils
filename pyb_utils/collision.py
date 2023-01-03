@@ -68,14 +68,26 @@ def index_collision_pairs(physics_uid, bodies, named_collision_pairs):
 
     return indexed_collision_pairs
 
+def get_link_ids(physics_uid, uid):
+    n = pyb.getNumJoints(uid, physics_uid)
+    body_link_map = {}
+    for i in range(n):
+        info = pyb.getJointInfo(uid, i, physics_uid)
+        link_name = info[12].decode("utf-8")
+        body_link_map[link_name] = i
+    return body_link_map
+
 
 class CollisionDetector:
     def __init__(self, col_id, bodies, named_collision_pairs):
         self.col_id = col_id
         self.robot_id = bodies["robot"]
+        self.robot_link_ids = get_link_ids(self.col_id, self.robot_id)
+        self.collision_object_ids = [x[1] for x in bodies.items() if x[0] not in ["robot", "dummy_target"]]
         self.indexed_collision_pairs = index_collision_pairs(
             self.col_id, bodies, named_collision_pairs
         )
+        self.bodies = bodies
 
     def compute_distances(self, q, joint_indices, max_distance=1.0):
         """Compute closest distances for a given configuration.
@@ -160,6 +172,43 @@ class CollisionDetector:
                 distances[a.link_uid].append(np.min([pt[8] for pt in closest_points]))
 
         return distances
+
+    def compute_distance_of_link(self, link_name, obstacle_name, max_distance=1.0):
+        """Compute closest distance of a specific link.
+
+        Parameters:
+          q: Iterable representing the desired configuration. This is applied
+             directly to PyBullet body with index bodies["robot"].
+          max_distance: Bodies farther apart than this distance are not queried
+             by PyBullet, the return value for the distance between such bodies
+             will be max_distance.
+
+        Returns: A NumPy array of distance and points of objects in the world frame
+        which connect the line of distance between the objects.
+        """
+
+        # todo: reset joint states (see function above)
+
+        # compute shortest distances between all object pairs
+        # todo: DEBUG Code PLS DELETE LATER
+        csd = pyb.getCollisionShapeData(objectUniqueId=self.robot_id, linkIndex=self.robot_link_ids[link_name])
+
+        result = pyb.getClosestPoints(
+            self.robot_id,
+            self.bodies[obstacle_name],
+            distance=max_distance,
+            linkIndexA=self.robot_link_ids[link_name],
+            linkIndexB=-1,
+            physicsClientId=self.col_id,
+        )
+
+        try:
+            return result[0][8], np.array(result[0][5]), np.array(result[0][6])
+        except ValueError:
+            return None, None, None
+        except IndexError:
+            # Obstacle is further away than inf_dist
+            return None, None, None
 
     def in_collision(self, q, joint_indices, margin=0):
         """Returns True if configuration q is in collision, False otherwise.
