@@ -130,12 +130,6 @@ class CollisionDetector:
         Returns: A NumPy array of distances, one per pair of collision objects.
         """
 
-        # put the robot in the given configuration
-        for i in joint_indices:
-            pyb.resetJointState(
-                self.robot_id, i, q[i], physicsClientId=self.col_id
-            )
-
         # compute shortest distances between all object pairs
         distances = {}
         for a, b in self.indexed_collision_pairs:
