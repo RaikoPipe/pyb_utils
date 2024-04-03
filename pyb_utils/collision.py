@@ -135,6 +135,46 @@ class CollisionDetector:
 
         return np.array(distances)
 
+    def get_distances_per_link(self, max_distance=1.0):
+        """Compute closest distances configuration sorted by link of robotic arm.
+
+             Parameters:
+               q: Iterable representing the desired configuration. This is applied
+                  directly to PyBullet body with index bodies["robot"].
+               max_distance: Bodies farther apart than this distance are not queried
+                  by PyBullet, the return value for the distance between such bodies
+                  will be max_distance.
+
+             Returns: A NumPy array of distances, one per pair of collision objects.
+             """
+
+        # put the robot in the given configuration
+        # for i in joint_indices:
+        #     p.resetJointState(
+        #         self.robot_id, i, q[i], physicsClientId=self.col_id
+        #     )
+
+        # compute shortest distances between all object pairs
+        distances = []
+        for a, b in self.indexed_collision_pairs:
+            closest_points = p.getClosestPoints(
+                a.body_uid,
+                b.body_uid,
+                distance=max_distance,
+                linkIndexA=a.link_uid,
+                linkIndexB=b.link_uid,
+                physicsClientId=self.col_id,
+            )
+
+            # if bodies are above max_distance apart, nothing is returned, so
+            # we just saturate at max_distance. Otherwise, take the minimum
+            if len(closest_points) == 0:
+                distances.append(max_distance)
+            else:
+                distances.append(np.min([pt[8] for pt in closest_points]))
+
+        return distances
+
     def compute_distances_per_link(self, max_distance=1.0):
         """Compute closest distances configuration sorted by link of robotic arm.
 
